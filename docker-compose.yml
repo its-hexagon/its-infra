@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mysql:
+    container_name: mysql
+    image: mysql:8.0
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: 'its-db'
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      LC_ALL: C.UTF-8
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  mongo:
+    container_name: mongodb
+    image: mongo:7.0
+    platform: linux/amd64
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  api:
+    container_name: api
+    image: ghcr.io/its-hexagon/its-service-services:latest
+    platform: linux/amd64
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    command: [ "java", "-jar", "app.jar" ]
+    environment:
+      SPRING_PROFILES_ACTIVE: prod,oauth
+      BASE_DOMAIN: api.its-edu.site
+      SPRING_DATASOURCE_URL: 'jdbc:mysql://mysql:3306/its-db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8'
+      SPRING_DATA_MONGODB_URI: 'mongodb://mongodb:27017/its-mongo'
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JWT_SECRET: ${JWT_SECRET}
+
+      OAUTH_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      OAUTH_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      OAUTH_NAVER_CLIENT_ID: ${NAVER_CLIENT_ID}
+      OAUTH_NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET}
+      OAUTH_KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      OAUTH_KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+
+    networks:
+      - app-network
+volumes:
+  mysql-data:
+  mongo-data:
+
+networks:
+  app-network:
