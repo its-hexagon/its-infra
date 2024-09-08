@@ -17,7 +17,11 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
-      - app-network
+      - its-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      retries: 5
 
   mongo:
     container_name: mongodb
@@ -26,6 +30,12 @@ services:
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
+    networks:
+      - its-network
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      retries: 5
 
   api:
     container_name: api
@@ -35,11 +45,13 @@ services:
       - "8080:8080"
     depends_on:
       - mysql
+      - mongo
     restart: unless-stopped
     command: [ "java", "-jar", "app.jar" ]
     environment:
       SPRING_PROFILES_ACTIVE: prod,oauth
-      BASE_DOMAIN: api.its-edu.site
+#      BASE_DOMAIN: api.its-edu.site
+      BASE_DOMAIN: localhost:8080
       SPRING_DATASOURCE_URL: 'jdbc:mysql://mysql:3306/its-db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8'
       SPRING_DATA_MONGODB_URI: 'mongodb://mongodb:27017/its-mongo'
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
@@ -54,10 +66,10 @@ services:
       OAUTH_KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
 
     networks:
-      - app-network
+      - its-network
 volumes:
   mysql-data:
   mongo-data:
 
 networks:
-  app-network:
+  its-network:
